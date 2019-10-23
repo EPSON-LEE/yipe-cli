@@ -2,23 +2,29 @@
  * @Author: lijiahao
  * @Date: 2019-10-22 15:35:44
  * @LastEditors: superYipe
- * @LastEditTime: 2019-10-22 19:24:54
+ * @LastEditTime: 2019-10-23 16:51:35
  */
 const axios = require('axios')
 const ora = require('ora')
 const Inquirer = require('Inquirer')
 const { promisify } = require('util')
-
+const path = require('path')
 const ncp = promisify(require('ncp'))
 const downLoadGit = promisify(require('download-git-repo'))
-const downloadDirectory = `${process.env[process.platform === 'darwin' ? 'HOME' : 'USERPROFILE']}/.template`;
+const log = console.log
+const config = require('../config.js')
+const repoUrl = config('getval', 'repo')
+const chalk = require('chalk')
+// const downloadDirectory = `${process.env[process.platform === 'darwin' ? 'HOME' : 'USERPROFILE']}/.template`;
+const downloadDirectory = `../demo`
 
 const download = async (repo, tag) => {
-  let api = `zhu-cli/${repo}`
+  let api = `${repoUrl}/${repo}`
   if (tag) {
     api += `#${tag}`
   }
   const dest = `${downloadDirectory}/${repo}` // 模板下载到对应目录中
+  log(chalk.magenta("下载的目标地址是", dest))
   await downLoadGit(api, dest)
   return dest
 }
@@ -33,12 +39,16 @@ const wrapperFetchAddLoading = (fn, message) => async (...args) => {
 
 
 const fetchRepoList = async () => {
-  const { data } = await axios.get('https://api.github.com/orgs/zhu-cli/repos')
+  log('repoUrl', repoUrl)
+  const { data } = await axios.get(`https://api.github.com/orgs/${repoUrl}/repos`)
+  log('结束')
   return data
 }
 
 const fetchingTagList = async (repo) => {
-  const { data } = await axios.get(`https://api.github.com/repos/zhu-cli/${repo}/tags`)
+  log('repo', repo)
+  log('repoUrl', repoUrl)
+  const { data } = await axios.get(`https://api.github.com/repos/${repoUrl}/${repo}/tags`)
   return data
 }
 
@@ -66,5 +76,5 @@ module.exports = async (projectName) => {
   const target = await wrapperFetchAddLoading(download, 'download template')(repo, tag)
   // 下载的文件拷贝到当前执行命令的目录下
   await ncp(target, path.join(path.resolve(), projectName))
-
+  process.exit(1)
 }
